@@ -140,6 +140,8 @@ If the request is unsafe, refuse briefly with this exact message and offer a saf
       // Files
       panelFiles: $('#panelFiles'),
       btnNewFile: $('#btnNewFile'),
+      btnPanelNewProject: $('#btnPanelNewProject'),
+      btnPanelReset: $('#btnPanelReset'),
       btnCollapseFiles: $('#btnCollapseFiles'),
       projectNameInput: $('#projectNameInput'),
       fileList: $('#fileList'),
@@ -270,12 +272,18 @@ If the request is unsafe, refuse briefly with this exact message and offer a saf
         hideModal(els.modalConfirm);
         els.confirmOk.removeEventListener('click', onOk);
         els.confirmCancel.removeEventListener('click', onCancel);
+        document.removeEventListener('keydown', onKey);
         $$('[data-close="modalConfirm"]', els.modalConfirm).forEach(b => b.removeEventListener('click', onCancel));
       };
       const onOk = () => { cleanup(); resolve(true); };
       const onCancel = () => { cleanup(); resolve(false); };
+      const onKey = (e) => {
+        if (e.key === 'Escape') onCancel();
+        else if (e.key === 'Enter') onOk();
+      };
       els.confirmOk.addEventListener('click', onOk);
       els.confirmCancel.addEventListener('click', onCancel);
+      document.addEventListener('keydown', onKey);
       $$('[data-close="modalConfirm"]', els.modalConfirm).forEach(b => b.addEventListener('click', onCancel));
       showModal(els.modalConfirm);
     });
@@ -284,6 +292,42 @@ If the request is unsafe, refuse briefly with this exact message and offer a saf
   function setWorking(on, text = 'Working…') {
     els.workingText.textContent = text;
     els.workingOverlay.hidden = !on;
+  }
+
+  function closeMobileMenu() {
+    if (els.headerActions) els.headerActions.classList.remove('show');
+  }
+
+  // Wrap a click handler so any thrown error becomes a visible toast instead
+  // of a silent failure (which is what the user was seeing on mobile).
+  function safe(handler) {
+    return async function (...args) {
+      try { return await handler.apply(this, args); }
+      catch (err) {
+        console.error('Handler error:', err);
+        toast('Action failed: ' + (err && err.message ? err.message : err), 'error');
+      }
+    };
+  }
+
+  function resetProject() {
+    if (state.autosaveTimer) { clearTimeout(state.autosaveTimer); state.autosaveTimer = null; }
+    state.files = {};
+    state.currentFile = null;
+    state.projectName = 'Untitled project';
+    state.lastModified = null;
+    state.saveStatus = 'idle';
+    state.validStatus = '—';
+    state.pendingAI = null;
+    state.isDirty = false;
+    clearProjectStorage();
+    hideAIOutput();
+    renderFileList();
+    loadCurrentFileToEditor();
+    updateStatusBar();
+    if (els.validatorResults) {
+      els.validatorResults.innerHTML = '<p class="hint-text">Run the validator to check your manifest.json and referenced files.</p>';
+    }
   }
 
   /* ============== 3. STORAGE ============== */
@@ -1200,6 +1244,8 @@ refresh();
   function applyTemplate(key) {
     const tpl = TEMPLATES[key];
     if (!tpl) { toast('Unknown template.', 'error'); return; }
+    // Cancel any pending autosave so it can't write stale state on top of the new project
+    if (state.autosaveTimer) { clearTimeout(state.autosaveTimer); state.autosaveTimer = null; }
     const t = tpl();
     state.projectName = t.name;
     state.files = {};
@@ -1210,10 +1256,14 @@ refresh();
     state.lastModified = nowIso();
     state.isDirty = false;
     state.saveStatus = 'saved';
+    state.validStatus = '—';
+    state.pendingAI = null;
+    hideAIOutput();
     saveProjectToStorage();
     renderFileList();
     loadCurrentFileToEditor();
     updateStatusBar();
+    closeMobileMenu();
     toast(`${t.name} project created.`, 'success');
   }
 
@@ -1708,35 +1758,32 @@ refresh();
 
   function bindEvents() {
     // Header
-    els.btnNewProject.addEventListener('click', () => showModal(els.modalTemplates));
-    els.btnImportZip.addEventListener('click', () => els.zipInput.click());
+    els.btnNewProject.addEventListener('click', safe(() => {
+      closeMobileMenu();
+      showModal(els.modalTemplates);
+    }));
+    els.btnImportZip.addEventListener('click', safe(() => {
+      closeMobileMenu();
+      els.zipInput.click();
+    }));
     els.zipInput.addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0];
       if (f) importZip(f);
       e.target.value = '';
     });
-    els.btnValidate.addEventListener('click', () => { runValidator(); });
-    els.btnExportZip.addEventListener('click', () => exportZip());
-    els.btnClearProject.addEventListener('click', async () => {
+    els.btnValidate.addEventListener('click', safe(() => { closeMobileMenu(); runValidator(); }));
+    els.btnExportZip.addEventListener('click', safe(() => { closeMobileMenu(); return exportZip(); }));
+    els.btnClearProject.addEventListener('click', safe(async () => {
+      closeMobileMenu();
       const ok = await openConfirm({
         title: 'Clear project',
         message: 'This will delete all files in the current project from your browser. Export ZIP first if you want a copy. Continue?',
         okLabel: 'Clear project'
       });
       if (!ok) return;
-      state.files = {};
-      state.currentFile = null;
-      state.projectName = 'Untitled project';
-      state.lastModified = null;
-      state.saveStatus = 'idle';
-      state.validStatus = '—';
-      clearProjectStorage();
-      renderFileList();
-      loadCurrentFileToEditor();
-      updateStatusBar();
-      els.validatorResults.innerHTML = '<p class="hint-text">Run the validator to check your manifest.json and referenced files.</p>';
+      resetProject();
       toast('Project cleared.', 'info');
-    });
+    }));
 
     els.btnMobileMenu.addEventListener('click', () => {
       els.headerActions.classList.toggle('show');
@@ -1747,21 +1794,15 @@ refresh();
       card.addEventListener('click', () => {
         const tpl = card.dataset.template;
         hideModal(els.modalTemplates);
-        if (Object.keys(state.files).length > 0) {
-          openConfirm({
-            title: 'Replace project?',
-            message: 'Creating a new project will replace your current files. Continue?',
-            okLabel: 'Replace'
-          }).then(ok => { if (ok) applyTemplate(tpl); });
-        } else {
-          applyTemplate(tpl);
-        }
+        // Always apply directly. Picking a template IS the confirmation.
+        // (Avoids a second modal that was getting stuck on some mobile browsers.)
+        applyTemplate(tpl);
       });
     });
     $$('[data-close="modalTemplates"]').forEach(b => b.addEventListener('click', () => hideModal(els.modalTemplates)));
 
     // File explorer
-    els.btnNewFile.addEventListener('click', async () => {
+    els.btnNewFile.addEventListener('click', safe(async () => {
       const path = await openPrompt({
         title: 'New file',
         message: 'Enter a file path (folders supported with /). Example: assets/icon.svg',
@@ -1773,7 +1814,20 @@ refresh();
         switchToFile(path);
         toast(`Created ${path}`, 'success');
       }
-    });
+    }));
+    els.btnPanelNewProject.addEventListener('click', safe(() => {
+      showModal(els.modalTemplates);
+    }));
+    els.btnPanelReset.addEventListener('click', safe(async () => {
+      const ok = await openConfirm({
+        title: 'Reset project',
+        message: 'Delete all files in this project? Export your ZIP first if you want a copy.',
+        okLabel: 'Reset'
+      });
+      if (!ok) return;
+      resetProject();
+      toast('Project reset. Tap "New" to start fresh.', 'info');
+    }));
     els.btnCollapseFiles.addEventListener('click', () => {
       els.panelFiles.classList.toggle('collapsed');
     });

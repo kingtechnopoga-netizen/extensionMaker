@@ -254,6 +254,8 @@ input, textarea, select { font-family: inherit; color: inherit; }
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 12px;
   border-bottom: 1px solid var(--line);
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .panel-title {
   margin: 0; font-size: 12px;
@@ -261,7 +263,7 @@ input, textarea, select { font-family: inherit; color: inherit; }
   color: var(--text-dim);
   font-weight: 700;
 }
-.panel-actions { display: flex; gap: 6px; }
+.panel-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .panel-footer-mini {
   padding: 8px 12px; font-size: 11px; color: var(--text-muted);
   border-top: 1px solid var(--line);

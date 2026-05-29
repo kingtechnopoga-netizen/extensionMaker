@@ -65,6 +65,8 @@
         <h2 class="panel-title">Files</h2>
         <div class="panel-actions">
           <button id="btnNewFile" class="btn-mini" title="New file" type="button">+ File</button>
+          <button id="btnPanelNewProject" class="btn-mini" title="New project" type="button">New</button>
+          <button id="btnPanelReset" class="btn-mini btn-mini-danger" title="Reset project" type="button">Reset</button>
           <button id="btnCollapseFiles" class="btn-mini mobile-only" title="Collapse" type="button">▾</button>
         </div>
       </div>
@@ -264,6 +266,7 @@
     <div class="modal-box modal-box-sm glass">
       <div class="modal-head">
         <h2 id="confirmTitle">Confirm</h2>
+        <button class="btn-mini" data-close="modalConfirm" type="button">Close</button>
       </div>
       <p class="prompt-message" id="confirmMessage"></p>
       <div class="modal-actions">
