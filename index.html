@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0a0d" />
+  <title>ExtensionForge AI - Build Chrome Extensions</title>
+  <meta name="description" content="Build, edit, validate, and export Chrome Extensions directly in your browser." />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ff2d4a'/%3E%3Cstop offset='1' stop-color='%23801020'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M32 4 L58 18 V46 L32 60 L6 46 V18 Z' fill='url(%23g)' stroke='%23ff5468' stroke-width='2'/%3E%3Cpath d='M32 14 L48 22 V42 L32 50 L16 42 V22 Z' fill='%2315090d' stroke='%23ff5468' stroke-width='1'/%3E%3Ctext x='32' y='37' text-anchor='middle' font-family='Arial' font-weight='bold' font-size='18' fill='%23ff5468'%3EE%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header glass">
+    <div class="header-brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="36" height="36">
+          <defs>
+            <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#ff2d4a"/>
+              <stop offset="1" stop-color="#5a0c18"/>
+            </linearGradient>
+          </defs>
+          <path d="M32 4 L58 18 V46 L32 60 L6 46 V18 Z" fill="url(#lg)" stroke="#ff5468" stroke-width="2"/>
+          <path d="M32 14 L48 22 V42 L32 50 L16 42 V22 Z" fill="#15090d" stroke="#ff5468" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h1 class="app-title">ExtensionForge <span class="ai-badge">AI</span></h1>
+        <p class="tagline">Build, edit, validate, and export Chrome Extensions</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button id="btnNewProject" class="btn btn-primary" type="button">
+        <span class="btn-icon">+</span><span>New Project</span>
+      </button>
+      <button id="btnImportZip" class="btn" type="button">
+        <span class="btn-icon">↑</span><span>Import ZIP</span>
+      </button>
+      <input type="file" id="zipInput" accept=".zip,application/zip" hidden />
+      <button id="btnValidate" class="btn" type="button">
+        <span class="btn-icon">✓</span><span>Validate</span>
+      </button>
+      <button id="btnExportZip" class="btn btn-accent" type="button">
+        <span class="btn-icon">↓</span><span>Export ZIP</span>
+      </button>
+      <button id="btnClearProject" class="btn btn-danger-ghost" type="button">
+        <span class="btn-icon">×</span><span>Clear</span>
+      </button>
+    </div>
+
+    <button id="btnMobileMenu" class="btn-icon-only mobile-only" type="button" aria-label="Toggle menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="workspace">
+
+    <!-- FILE EXPLORER -->
+    <aside class="panel panel-files glass" id="panelFiles">
+      <div class="panel-header">
+        <h2 class="panel-title">Files</h2>
+        <div class="panel-actions">
+          <button id="btnNewFile" class="btn-mini" title="New file" type="button">+ File</button>
+          <button id="btnCollapseFiles" class="btn-mini mobile-only" title="Collapse" type="button">▾</button>
+        </div>
+      </div>
+      <div class="project-name-bar">
+        <input id="projectNameInput" type="text" placeholder="Untitled project" autocomplete="off" />
+      </div>
+      <ul id="fileList" class="file-list" aria-label="Project files"></ul>
+      <div class="panel-footer-mini">
+        <span id="fileCountLabel">0 files</span>
+      </div>
+    </aside>
+
+    <!-- EDITOR -->
+    <section class="panel panel-editor glass" id="panelEditor">
+      <div class="editor-toolbar">
+        <div class="editor-file-info">
+          <span class="file-icon" id="currentFileIcon">📄</span>
+          <span class="current-file-name" id="currentFileName">No file open</span>
+          <span class="file-type-badge" id="currentFileType"></span>
+          <span class="save-indicator" id="saveIndicator">saved</span>
+        </div>
+        <div class="editor-actions">
+          <button id="btnCopyCode" class="btn-mini" type="button" title="Copy code">Copy</button>
+          <button id="btnFormatJson" class="btn-mini" type="button" title="Format JSON" hidden>Format</button>
+          <button id="btnRenameFile" class="btn-mini" type="button" title="Rename file">Rename</button>
+          <button id="btnDuplicateFile" class="btn-mini" type="button" title="Duplicate file">Dup</button>
+          <button id="btnDeleteFile" class="btn-mini btn-mini-danger" type="button" title="Delete file">Delete</button>
+        </div>
+      </div>
+      <div class="editor-wrap">
+        <textarea
+          id="codeEditor"
+          class="code-editor"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          placeholder="Open or create a file to start editing..."
+          wrap="off"
+        ></textarea>
+        <div class="editor-empty" id="editorEmpty">
+          <p class="editor-empty-title">No file selected</p>
+          <p class="editor-empty-sub">Create a new project or open a file from the explorer.</p>
+        </div>
+      </div>
+      <div class="editor-error" id="editorError" hidden></div>
+      <div class="editor-statusline">
+        <span id="editorMeta">0 lines · 0 chars</span>
+        <span id="editorMime">—</span>
+      </div>
+    </section>
+
+    <!-- AI ASSISTANT + VALIDATOR -->
+    <aside class="panel panel-ai glass" id="panelAI">
+      <div class="tabs">
+        <button class="tab tab-active" data-tab="ai" type="button">AI Assistant</button>
+        <button class="tab" data-tab="validator" type="button">Validator</button>
+        <button class="tab" data-tab="install" type="button">Install</button>
+      </div>
+
+      <!-- AI tab -->
+      <div class="tab-panel" data-tab-panel="ai">
+        <div class="ai-status" id="aiStatus">Checking AI…</div>
+
+        <label class="ai-label">Model</label>
+        <select id="aiModel" class="ai-select">
+          <option value="gpt-5-nano">gpt-5-nano (fast)</option>
+          <option value="gpt-5-mini" selected>gpt-5-mini (balanced)</option>
+          <option value="gpt-5">gpt-5 (best)</option>
+          <option value="claude-sonnet-4">claude-sonnet-4</option>
+          <option value="claude-opus-4">claude-opus-4</option>
+          <option value="gpt-4o-mini">gpt-4o-mini</option>
+        </select>
+
+        <label class="ai-label">Prompt</label>
+        <textarea id="aiPrompt" class="ai-prompt" rows="4" placeholder="Describe your extension or what to change. e.g. 'Build a dark mode extension for any website with a popup toggle.'"></textarea>
+
+        <div class="ai-buttons">
+          <button id="btnAIGenerate" class="btn btn-primary btn-block" type="button">Generate Extension</button>
+          <div class="ai-buttons-row">
+            <button id="btnAIModify" class="btn-mini" type="button">Modify File</button>
+            <button id="btnAIExplain" class="btn-mini" type="button">Explain</button>
+            <button id="btnAIFix" class="btn-mini" type="button">Fix Bugs</button>
+            <button id="btnAIImprove" class="btn-mini" type="button">Improve UI</button>
+          </div>
+        </div>
+
+        <div class="ai-output" id="aiOutput" hidden>
+          <div class="ai-output-header">
+            <span id="aiOutputTitle">AI Output</span>
+            <div class="ai-output-actions">
+              <button id="btnAIAccept" class="btn-mini btn-mini-accept" type="button">Accept</button>
+              <button id="btnAIReject" class="btn-mini btn-mini-danger" type="button">Reject</button>
+              <button id="btnAICopy" class="btn-mini" type="button">Copy</button>
+            </div>
+          </div>
+          <pre id="aiOutputBody" class="ai-output-body"></pre>
+          <div id="aiOutputMessage" class="ai-output-message"></div>
+        </div>
+      </div>
+
+      <!-- Validator tab -->
+      <div class="tab-panel" data-tab-panel="validator" hidden>
+        <button id="btnRunValidator" class="btn btn-primary btn-block" type="button">Run Manifest V3 Check</button>
+        <div id="validatorResults" class="validator-results">
+          <p class="hint-text">Run the validator to check your manifest.json and referenced files.</p>
+        </div>
+      </div>
+
+      <!-- Install tab -->
+      <div class="tab-panel" data-tab-panel="install" hidden>
+        <h3 class="section-title">How to install your extension</h3>
+        <ol class="install-steps">
+          <li>Click <strong>Export ZIP</strong>.</li>
+          <li>Extract the ZIP file on your computer.</li>
+          <li>Open <code>chrome://extensions</code> in Chrome.</li>
+          <li>Enable <strong>Developer Mode</strong> (top-right toggle).</li>
+          <li>Click <strong>Load unpacked</strong>.</li>
+          <li>Select the extracted folder.</li>
+          <li>Your extension is now active.</li>
+        </ol>
+        <div class="note-box">
+          <strong>Android note:</strong> Chrome on Android does not officially support loading custom extensions. Test on desktop Chrome, or on extension-supporting Android browsers like Kiwi or Yandex.
+        </div>
+        <h3 class="section-title">Safety</h3>
+        <p class="hint-text">ExtensionForge AI refuses to generate malware, spyware, keyloggers, cookie/token stealers, phishing tools, paid-feature unlockers, or modifications to third-party extensions you don't own. Use only with extensions you have the right to edit.</p>
+      </div>
+    </aside>
+  </main>
+
+  <!-- STATUS BAR -->
+  <footer class="status-bar glass">
+    <div class="status-item"><span class="status-label">File:</span> <span id="statusFile">—</span></div>
+    <div class="status-item"><span class="status-label">Save:</span> <span id="statusSave">—</span></div>
+    <div class="status-item"><span class="status-label">Valid:</span> <span id="statusValid">—</span></div>
+    <div class="status-item"><span class="status-label">Project:</span> <span id="statusProject">No project</span></div>
+    <div class="status-item"><span class="status-label">Modified:</span> <span id="statusModified">—</span></div>
+  </footer>
+
+  <!-- MODAL: Templates -->
+  <div class="modal" id="modalTemplates" hidden>
+    <div class="modal-backdrop" data-close="modalTemplates"></div>
+    <div class="modal-box glass">
+      <div class="modal-head">
+        <h2>Choose a template</h2>
+        <button class="btn-mini" data-close="modalTemplates" type="button">Close</button>
+      </div>
+      <div class="template-grid">
+        <button class="template-card" data-template="blank" type="button">
+          <span class="tpl-icon">▣</span><span class="tpl-name">Blank Extension</span>
+          <span class="tpl-desc">Minimal Manifest V3 starter.</span>
+        </button>
+        <button class="template-card" data-template="popup" type="button">
+          <span class="tpl-icon">◐</span><span class="tpl-name">Popup Extension</span>
+          <span class="tpl-desc">Click-to-open popup with button + storage.</span>
+        </button>
+        <button class="template-card" data-template="content" type="button">
+          <span class="tpl-icon">≣</span><span class="tpl-name">Content Script</span>
+          <span class="tpl-desc">Inject safe scripts into pages.</span>
+        </button>
+        <button class="template-card" data-template="customizer" type="button">
+          <span class="tpl-icon">✎</span><span class="tpl-name">Website Customizer</span>
+          <span class="tpl-desc">Apply custom CSS to chosen sites.</span>
+        </button>
+        <button class="template-card" data-template="darkmode" type="button">
+          <span class="tpl-icon">◑</span><span class="tpl-name">Dark Mode</span>
+          <span class="tpl-desc">Toggle dark mode on any website.</span>
+        </button>
+        <button class="template-card" data-template="productivity" type="button">
+          <span class="tpl-icon">◷</span><span class="tpl-name">Productivity</span>
+          <span class="tpl-desc">Notes + reminders popup with storage.</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Prompt input (rename, new file) -->
+  <div class="modal" id="modalPrompt" hidden>
+    <div class="modal-backdrop" data-close="modalPrompt"></div>
+    <div class="modal-box modal-box-sm glass">
+      <div class="modal-head">
+        <h2 id="promptTitle">Input</h2>
+        <button class="btn-mini" data-close="modalPrompt" type="button">Close</button>
+      </div>
+      <p class="prompt-message" id="promptMessage"></p>
+      <input type="text" id="promptInput" class="prompt-input" autocomplete="off" />
+      <div class="modal-actions">
+        <button id="promptCancel" class="btn-mini" type="button">Cancel</button>
+        <button id="promptOk" class="btn btn-primary" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Confirm -->
+  <div class="modal" id="modalConfirm" hidden>
+    <div class="modal-backdrop" data-close="modalConfirm"></div>
+    <div class="modal-box modal-box-sm glass">
+      <div class="modal-head">
+        <h2 id="confirmTitle">Confirm</h2>
+      </div>
+      <p class="prompt-message" id="confirmMessage"></p>
+      <div class="modal-actions">
+        <button id="confirmCancel" class="btn-mini" type="button">Cancel</button>
+        <button id="confirmOk" class="btn btn-danger" type="button">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
+
+  <!-- AI Working overlay -->
+  <div class="working-overlay" id="workingOverlay" hidden>
+    <div class="working-box glass">
+      <div class="spinner"></div>
+      <div class="working-text" id="workingText">Working…</div>
+    </div>
+  </div>
+
+  <!-- CDN -->
+  <script src="https://js.puter.com/v2/"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="app.js" defer></script>
+</body>
+</html>
