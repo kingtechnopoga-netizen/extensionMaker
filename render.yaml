@@ -1,0 +1,40 @@
+# Render Blueprint for ExtensionForge AI
+# Deploys the project as a static site. No build, no backend, no env vars.
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: extensionforge-ai
+    runtime: static
+    buildCommand: echo "No build required"
+    staticPublishPath: .
+    pullRequestPreviewsEnabled: true
+    headers:
+      # Security
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=()
+      # Caching
+      - path: /*.css
+        name: Cache-Control
+        value: public, max-age=86400
+      - path: /*.js
+        name: Cache-Control
+        value: public, max-age=86400
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
+    routes:
+      # SPA-style fallback so any unknown path serves index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html

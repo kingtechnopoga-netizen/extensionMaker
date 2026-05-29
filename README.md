@@ -29,6 +29,7 @@ ExtensionForge-AI/
 ├── index.html
 ├── style.css
 ├── app.js
+├── render.yaml   (Render Blueprint - optional one-click deploy config)
 └── README.md
 ```
 
@@ -63,39 +64,51 @@ Then open `http://localhost:8080`.
 
 ---
 
-## Deploy to Render (Static Site)
+## Deploy to Render
 
 The app is a pure static site. No build, no server, no environment variables.
 
-1. Push these files to a GitHub repository:
-   - `index.html`
-   - `style.css`
-   - `app.js`
-   - `README.md`
+A `render.yaml` Blueprint is included so Render can configure everything automatically.
 
-2. Go to [Render](https://render.com).
+### Option A — Blueprint (recommended, one click)
 
-3. Click **New +**.
+1. Push the project to a GitHub repository (already done if you forked this repo).
 
-4. Select **Static Site**.
+2. Go to [Render Dashboard](https://dashboard.render.com).
 
-5. Connect your GitHub repository.
+3. Click **New +** → **Blueprint**.
 
-6. Use this **Build Command**:
+4. Connect your GitHub repo (`extensionMaker` or whatever you named it).
 
-   ```
-   echo "No build required"
-   ```
+5. Render reads `render.yaml` and shows the service it will create:
+   - **Name:** `extensionforge-ai`
+   - **Type:** Static Site
+   - **Build Command:** `echo "No build required"`
+   - **Publish Directory:** `.`
+   - **PR previews:** enabled
+   - Sensible cache + security headers preconfigured.
 
-7. Use this **Publish Directory**:
+6. Click **Apply**.
 
-   ```
-   .
-   ```
+7. Wait ~30 seconds. Open the Render URL it gives you.
 
-8. Click **Deploy**.
+That's it — no manual config needed.
 
-9. Open the Render URL after deployment.
+### Option B — Manual Static Site
+
+1. Go to [Render](https://render.com).
+
+2. Click **New +** → **Static Site**.
+
+3. Connect your GitHub repository.
+
+4. **Build Command:** `echo "No build required"`
+
+5. **Publish Directory:** `.`
+
+6. Click **Deploy**.
+
+7. Open the Render URL after deployment.
 
 The same files also work on Netlify, Vercel (Static), GitHub Pages, Cloudflare Pages, or any static host.
 
